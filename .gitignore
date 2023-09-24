@@ -1,0 +1,4 @@
+raw-info
+**/build
+**/node_modules
+**/.env
