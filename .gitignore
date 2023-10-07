@@ -2,3 +2,10 @@ raw-info
 **/build
 **/node_modules
 **/.env
+
+**/upload_files
+# Ignore all files in directories named "logs"
+**/logs/*
+
+# Ignore files with a ".logs" extension
+**.logs
