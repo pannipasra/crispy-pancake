@@ -8,4 +8,6 @@ raw-info
 **/logs/*
 
 # Ignore files with a ".logs" extension
-**.logs
+**.log
+
+backend/logs/*
