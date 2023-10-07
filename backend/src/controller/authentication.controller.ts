@@ -47,13 +47,18 @@ export const login = async (req: express.Request, res: express.Response) => {
         const token = user._id;
         // setup cookie with username for auth
         // Set a cookie with the authentication token
-        res.cookie(COOKIE_CONFIGS.EXPENSE_APP_1111, token, {
-            domain: COOKIE_CONFIGS.LOCAL_DOMAIN,
-            path: '/'
-        });
+        res.cookie(
+            COOKIE_CONFIGS.COOKIE_NAME,
+            token,
+            {
+                domain: COOKIE_CONFIGS.LOCAL_DOMAIN,
+                path: '/',
+                httpOnly: true,
+            }
+        );
 
         // You can also include other data in the response if needed
-        return res.status(200).json({ message: 'Login successful', user }).end();
+        return res.status(200).json({ message: 'Login successful' }).end();
 
     } catch (err) {
         logger.error(`[login] ${err}`);

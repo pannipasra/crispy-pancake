@@ -7,6 +7,7 @@ import morganMiddleware from './middlewares/morganMiddleWare';
 import fileRoute from './routes/file_handlers.route';
 import userRoute from './routes/user.route';
 import expenseInfoRoute from './routes/expense_info.route';
+import { isMonGooseConnected } from './middlewares';
 
 // Create app by express();
 const app = express();
@@ -19,14 +20,15 @@ app.use(function (req, res, next) {
     next();
 });
 app.use(express.json());
-app.use(morganMiddleware);
 app.use(cookieParser());
-// Configure CORS to allow all origins
+// Enable CORS with specific origin and credentials support
 const corsOptions = {
-    origin: 'localhost',
-    credentials: true, // Allow credentials (cookies) to be sent with the request
+    origin: 'http://localhost:3000', // Replace with your frontend's origin
+    credentials: true, // Allow credentials (cookies) to be sent with requests
 };
 app.use(cors(corsOptions));
+app.use(morganMiddleware);
+app.use(isMonGooseConnected)
 
 // Routes handler
 app.use('/api/v1/user', userRoute);

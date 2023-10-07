@@ -17,7 +17,7 @@ export enum HEADER_NORMALIZE_EN {
 }
 
 export enum COOKIE_CONFIGS {
-    EXPENSE_APP_1111 = 'EXPENSE_APP_1111',
+    COOKIE_NAME = 'EXPENSE_APP_1111',
     LOCAL_DOMAIN = 'localhost'
 }
 

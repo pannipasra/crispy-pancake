@@ -29,7 +29,7 @@ declare global {
 export const extractAuthTokenMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
         // Extract the authentication token from the cookie
-        const authToken = req.cookies[COOKIE_CONFIGS.EXPENSE_APP_1111];
+        const authToken = req.cookies[COOKIE_CONFIGS.COOKIE_NAME];
         if (!authToken) {
             return res.status(403).json({ error: 'Required Token' });
         }

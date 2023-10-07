@@ -7,7 +7,7 @@ const PORT = 7821;
 
 
 app.listen(PORT, () => {
-    logger.warn(`🌈Server is running at http://localhost:${PORT} ⚡`);
+    logger.info(`🌈Server is running at http://localhost:${PORT} ⚡`);
 });
 
 connectToDB();

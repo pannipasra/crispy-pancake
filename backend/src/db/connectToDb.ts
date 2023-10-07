@@ -14,8 +14,16 @@ export async function connectToDB() {
             logger.info('Connected to MongoDB.');
         } else {
             logger.error('Failed to connect to MongoDB.');
+            retryConnecting();
         }
     } catch (err) {
         logger.error(`[connectDB]: ${err}`);
+        retryConnecting();
     }
+}
+
+function retryConnecting() {
+    // Retry the connection after a delay (e.g., 5 seconds)
+    logger.info('[retryConnecting]: Try to connect to MongoDB');
+    setTimeout(connectToDB, 5000);
 }
