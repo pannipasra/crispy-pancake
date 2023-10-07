@@ -15,3 +15,14 @@ export enum HEADER_NORMALIZE_EN {
     DESCRIPTION = 'DESCRIPTION',
     AUTHORIZATION_CODE = 'AUTHORIZATION_CODE'
 }
+
+export enum COOKIE_CONFIGS {
+    EXPENSE_APP_1111 = 'EXPENSE_APP_1111',
+    LOCAL_DOMAIN = 'localhost'
+}
+
+export const TIMEZONE = "Asia/Tokyo";
+
+export const DEFAULT_EXPENSE_TYPES = [ 'jdebits', 'cash' ]
+export const DEFAULT_LIST_CATEGORY = [ 'Food', 'Transportation', 'Utilities', 'Entertainment', 'Healthcare' ];
+export const ERROR_SERVER_MSG = 'An error has ocuured in server.';

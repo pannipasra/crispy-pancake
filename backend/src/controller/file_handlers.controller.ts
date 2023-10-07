@@ -1,25 +1,21 @@
 import express from 'express';
 import csvParser from 'csv-parser';
-import csvReader from 'csv-reader';
-import { Readable } from 'stream';
 import fs from 'fs';
-import { HEADER_J_DEBITS_JP, HEADER_NORMALIZE_EN } from '../utils/contants';
-import { ExpanseJDebitInfo_Model } from '../db/models/expanse_jdebit';
+import { DEFAULT_EXPENSE_TYPES, ERROR_SERVER_MSG, HEADER_J_DEBITS_JP, HEADER_NORMALIZE_EN, TIMEZONE } from '../utils/contants';
+import { ExpanseUsageInfo_Model } from '../db/models/expanse_usage_info';
+import logger from '../utils/logger';
+import { getUserByUserId } from '../db/queries/user';
+import { craeteExpanseUsageInfo } from '../db/queries/expanse_usage_infos';
+import moment from 'moment';
 
-export const deleteAllInfo = async(req: express.Request, res: express.Response) => {
+export const uploadJDebitFile = async (req: express.Request, res: express.Response) => {
     try {
-        // Use Mongoose to delete all documents in the collection
-        await ExpanseJDebitInfo_Model.deleteMany({});
+        const authToken = req.authToken;
+        const user = await getUserByUserId(authToken!);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
 
-        return res.status(200).json({ message: 'All information deleted successfully.' });
-    } catch (err) {
-        console.log(`An error has ocuured: ${err}`);
-        return res.status(500).json({ error: 'An error has ocuured in server.' });
-    }
-}
-
-export const uploadFile = (req: express.Request, res: express.Response) => {
-    try {
         if (!req.file) {
             return res.status(400).json({ error: 'No CSV file uploaded.' });
         }
@@ -49,8 +45,6 @@ export const uploadFile = (req: express.Request, res: express.Response) => {
                     results.splice(startIndex);
                 }
 
-                // console.log(results);
-
                 return res.status(200).json({
                     message: 'hi upload_file',
                     payload: {
@@ -62,33 +56,46 @@ export const uploadFile = (req: express.Request, res: express.Response) => {
 
 
     } catch (err) {
-        console.log(`An error has ocuured: ${err}`);
-        return res.status(500).json({ error: 'An error has ocuured in server.' });
+        logger.error(`[uploadJDebitFile] ${err}`);
+        return res.status(500).json({ error: ERROR_SERVER_MSG });
     }
 }
 
-export const uploadMultiFile = async (req: express.Request, res: express.Response) => {
+// Use this function to handle the upload of multiple CSV files for JDebit data processing.
+export const uploadJDebitMultiFile = async (req: express.Request, res: express.Response) => {
     try {
+        // Authenticate the user based on the provided auth token
+        const authToken = req.authToken;
+        const user = await getUserByUserId(authToken!);
+
+        // Check if the user exists
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Check if any CSV files were uploaded
         if (!req.files) {
             return res.status(400).json({ error: 'No CSV files uploaded.' });
         }
 
-        // Use csv-parser to parse the CSV file
+        // Initialize an array to combine results from processing CSV files
         let combinedResults: string[] = [];
-        let normalizedHeaderResults: string[] = [];
-        const mappedData: any = {};
 
+        // Iterate through uploaded files and process them using promises
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             const filePromises = req.files.map(async (csvFile) => {
                 try {
+                    // Process the CSV file and retrieve results
                     const results = await processCSVFile(csvFile);
+
+                    // If results are an array, accumulate them
                     if (Array.isArray(results)) {
-                        console.log('result');
+                        // logger.debug('[uploadJDebitMultiFile] result');
                         combinedResults.push(...results); // Accumulate results in an array
                     }
 
                 } catch (error) {
-                    console.error(`Error processing file ${csvFile.originalname}: ${error}`);
+                    logger.error(`[uploadJDebitMultiFile] Error processing file ${csvFile.originalname}: ${error}`);
                 }
             });
 
@@ -96,20 +103,25 @@ export const uploadMultiFile = async (req: express.Request, res: express.Respons
             await Promise.all(filePromises);
         }
 
-        console.log('wow, really ended propmise???');
+        logger.debug('[uploadJDebitMultiFile] File processing completed.');
 
-        // Map the data to use English keys
+        // Map the processed data to use English keys and format it
         const englishData = combinedResults.map((item: any) => {
             const newItem: any = {};
             for (const japaneseKey in item) {
                 const engKey = mappedDataToENG(japaneseKey);
+
+                // Convert data based on English keys
                 if (engKey) {
                     switch (engKey) {
                         case HEADER_NORMALIZE_EN.TRANSFERRED_AMOUNT_IN_JPY:
-                            newItem[engKey] = parseFloat(item[japaneseKey].replace(/,/g, ''));
+                            const normalizedAmpuntInJPY = parseFloat(item[japaneseKey].replace(/,/g, ''));
+                            newItem[engKey] = normalizedAmpuntInJPY;
                             break;
                         case HEADER_NORMALIZE_EN.TRANSFERRED_DATE:
-                            newItem[engKey] = new Date(item[japaneseKey]);
+                            const formattedDateString = item[japaneseKey].replace(/\//g, '-'); // Replace slashes with dashes
+                            const normalizedTransferredDate = moment.tz(formattedDateString, TIMEZONE).toDate();
+                            newItem[engKey] = normalizedTransferredDate;
                             break;
                         default:
                             newItem[engKey] = item[japaneseKey];
@@ -117,55 +129,38 @@ export const uploadMultiFile = async (req: express.Request, res: express.Respons
                     }
                 }
 
+                // Add additional keys for tracking like userId and expenseType
+                newItem['userId'] = user._id;
+                newItem['expenseType'] = DEFAULT_EXPENSE_TYPES[0]; // jdebits
             }
             return newItem;
         });
 
-        const expanseInfo = await ExpanseJDebitInfo_Model.insertMany(englishData);
+        // Insert the processed data into the database or update existing records if the combination of TRANSFERRED_DATE and AUTHORIZATION_CODE matches
+        const expanseInfo = await Promise.all(englishData.map(async (item: any) => {
+            const existingRecord = await ExpanseUsageInfo_Model.findOne({
+                TRANSFERRED_DATE: item[HEADER_NORMALIZE_EN.TRANSFERRED_DATE],
+                AUTHORIZATION_CODE: item[HEADER_NORMALIZE_EN.AUTHORIZATION_CODE]
+            });
 
-        return res.status(200).json({
-            message: 'hi upload_file',
-            payload: {
-                englishData,
-                expanseInfo
+            if (existingRecord) {
+                // If a matching record exists, update it
+                existingRecord.set(item);
+                return existingRecord.save();
+            } else {
+                // If no matching record exists, create a new one
+                return await craeteExpanseUsageInfo(item);
             }
+        }));
+
+        // Return a success response with the processed data
+        return res.status(200).json({
+            message: 'CSV file(s) uploaded successfully.',
+            payload: expanseInfo
         });
     } catch (err) {
-        console.log(`An error has ocuured: ${err}`);
-        return res.status(500).json({ error: 'An error has ocuured in server.' });
-    }
-}
-
-export const getInfoByDateFixed = async(req: express.Request, res: express.Response) => {
-    try{
-        const startDate = new Date('2023-07-01'); // Replace YYYY with the desired year
-        const endDate = new Date('2023-07-31');   // Replace YYYY with the desired year
-        
-        const infos = await ExpanseJDebitInfo_Model.find({
-            TRANSFERRED_DATE: {
-                $gte: startDate,
-                $lt: endDate
-            }
-        }); // .exec(); // Use exec() to execute the query and return a promise
-
-        return res.status(200).json({ message: 'Query ok!', payload: infos });
-
-    }catch(err){
-        console.log(`An error has ocuured: ${err}`);
-        return res.status(500).json({ error: 'An error has ocuured in server.' });
-    }
-}
-
-export const getAllInfos = async(req: express.Request, res: express.Response) => {
-    try{
-        
-        const infos = await ExpanseJDebitInfo_Model.find(); // .exec(); // Use exec() to execute the query and return a promise
-
-        return res.status(200).json({ message: 'Query ok!', payload: infos });
-
-    }catch(err){
-        console.log(`An error has ocuured: ${err}`);
-        return res.status(500).json({ error: 'An error has ocuured in server.' });
+        logger.error(`[uploadJDebitMultiFile] ${err}`);
+        return res.status(500).json({ error: ERROR_SERVER_MSG });
     }
 }
 
@@ -183,7 +178,6 @@ const processCSVFile = (csvFile: Express.Multer.File) => {
             .on('end', () => {
                 // Find the index of the first empty object
                 const startIndex = results.findIndex(item => Object.keys(item).length === 0);
-                const mappedData: any = {}; // Map the headers from Japanese to English
                 // If an empty object is found, remove all elements from it to the end
                 if (startIndex !== -1) {
                     results.splice(startIndex);

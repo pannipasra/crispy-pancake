@@ -1,9 +1,10 @@
 import winston from "winston";
 import 'dotenv/config';
+import { TIMEZONE } from "./contants";
 
 const timeZoned = () => {
     const options = {
-        timeZone: 'Asia/Tokyo',
+        timeZone: TIMEZONE,
         hour12: false,
     }
     const now = new Date().toLocaleString('ja-JP', options);

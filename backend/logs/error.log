@@ -1,0 +1,1 @@
+2023/10/7 20:30:52 error: [getInfosByUserIdAndRangeOfDate] CastError: Cast to date failed for value "Invalid Date" (type Date) at path "TRANSFERRED_DATE" for model "expanse_usage_info"
