@@ -24,6 +24,6 @@ export async function connectToDB() {
 
 function retryConnecting() {
     // Retry the connection after a delay (e.g., 5 seconds)
-    logger.info('[retryConnecting]: Try to connect to MongoDB');
+    logger.warn('[retryConnecting]: Try to connect to MongoDB');
     setTimeout(connectToDB, 5000);
 }
