@@ -129,7 +129,7 @@ export const getInfosByRangeOfDate = async (req: express.Request, res: express.R
     }
 }
 
-export const getAllRoughtlyInfosYYYYMMDD = async (req: express.Request, res: express.Response<IApiResponse>) => {
+export const getAllRoughlyInfosYYYYMMDD = async (req: express.Request, res: express.Response<IApiResponse>) => {
     try {
         // Authenticate the user
         const authToken = req.authToken;
@@ -190,7 +190,7 @@ export const getAllRoughtlyInfosYYYYMMDD = async (req: express.Request, res: exp
     }
 }
 
-export const getInfosByRangeOfDateFromRoughtlyDateYYYYMM = async (req: express.Request, res: express.Response<IApiResponse>) => {
+export const getInfosByRangeOfDateFromRoughlyDateYYYYMM = async (req: express.Request, res: express.Response<IApiResponse>) => {
     try {
         // Authenticate the user
         const authToken = req.authToken;
