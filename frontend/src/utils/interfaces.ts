@@ -22,3 +22,38 @@ export interface CalcualtedStatistics {
         [key: string]: number;
     };
 }
+
+export interface ExpenseInfo {
+    AUTHORIZATION_CODE: string;
+    DESCRIPTION: string;
+    TRANSFERRED_AMOUNT_IN_JPY: number;
+    TRANSFERRED_DATE: string;
+    USAGE_OR_DESTINATION: string;
+    USER: string;
+    createdDate: string;
+    expenseType: string;
+    userId: string;
+    __v: number;
+    _id: string;
+}
+
+
+export interface ApiResponseInfoRoughly {
+    message: string;
+    payload: {
+        dateList: YYYYMM[];
+    };
+}
+
+export interface YYYYMM {
+    year: number;
+    month: number;
+}
+
+export interface ApiResponseInfoByRangeDate {
+    message: string;
+    payload: {
+        amountUseInJPY: number;
+        expenseInfos: ExpenseInfo[]
+    };
+}
